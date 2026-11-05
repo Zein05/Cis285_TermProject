@@ -1,0 +1,74 @@
+@startuml
+title SplitSmart proposed architecture — desktop MVP and full-product path
+left to right direction
+skinparam componentStyle rectangle
+
+actor "Desktop user" as DesktopUser
+actor "Web/mobile user" as ProductUser
+
+package "Desktop MVP target (not implemented)" {
+  component "Swing presentation" as Swing
+  component "Local persistence adapter\n(engine undecided)" as LocalPersistence
+  component "In-app notification adapter" as LocalNotifications
+  component "Local demo identity adapter\n(policy open)" as LocalIdentity
+  database "Local store\n(choice open)" as LocalStore
+}
+
+package "Java application core (proposed, not implemented)" {
+  component "Application use cases" as UseCases
+  component "Domain model and rules\n(BigDecimal; pairwise)" as Domain
+  interface "Persistence / transaction ports" as PersistencePort
+  interface "Identity / authorization port" as IdentityPort
+  interface "Notification port" as NotificationPort
+  interface "Receipt storage port" as ReceiptPort
+  component "Receipt adapter\n(storage undecided)" as ReceiptAdapter
+}
+
+package "Full product (future; not implemented)" {
+  component "Web client\n(primary)" as Web
+  component "Android client" as Android
+  component "iOS client" as IOS
+  component "Authenticated service/API\n(protocol undecided)" as API
+  component "Shared persistence adapter\n(engine undecided)" as SharedPersistence
+  component "Shared identity/session adapter\n(choice open)" as SharedIdentity
+  component "Notification delivery adapter\n(channel undecided)" as SharedNotifications
+  database "Shared relational store\n(candidate, not selected)" as SharedStore
+}
+
+DesktopUser --> Swing
+Swing --> UseCases : in-process MVP calls
+UseCases --> Domain
+UseCases --> PersistencePort
+LocalPersistence ..|> PersistencePort
+LocalPersistence --> LocalStore
+UseCases --> IdentityPort
+LocalIdentity ..|> IdentityPort
+UseCases --> NotificationPort
+LocalNotifications ..|> NotificationPort
+UseCases --> ReceiptPort
+ReceiptAdapter ..|> ReceiptPort
+
+ProductUser --> Web
+ProductUser --> Android
+ProductUser --> IOS
+Web --> API : authenticated requests
+Android --> API : authenticated requests
+IOS --> API : authenticated requests
+API --> UseCases : server-side use cases
+SharedPersistence ..|> PersistencePort
+SharedPersistence --> SharedStore
+SharedIdentity ..|> IdentityPort
+SharedNotifications ..|> NotificationPort
+
+note bottom of Domain
+Business rules do not depend on Swing,
+storage, HTTP, or notification providers.
+Clients do not calculate authoritative balances.
+end note
+
+note bottom of API
+Future boundary only. It is not a current
+network API or approved deployment.
+end note
+
+@enduml

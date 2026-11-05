@@ -1,0 +1,116 @@
+@startuml
+title SplitSmart conceptual domain model
+hide methods
+skinparam classAttributeIconSize 0
+
+class Account {
+  accountId
+  email
+  state
+}
+
+class Group {
+  groupId
+  name
+  currencyCode
+  reviewPolicyVersion
+}
+
+class GroupMembership {
+  role: CREATOR | MANAGER | MEMBER
+  state: ACTIVE | REMOVED
+  joinedAt
+  endedAt
+}
+
+class Expense {
+  expenseId
+  amount: BigDecimal
+  occurredOn
+  splitMethod: EQUAL | PERCENTAGE
+  state: PENDING_REVIEW | APPROVED | REJECTED
+  submitterId = payerId
+}
+
+class ExpenseShare {
+  amount: BigDecimal
+  percentage?
+  allocationOrder
+}
+
+class ReviewDecision {
+  step
+  outcome: APPROVE | REJECT
+  reviewerId
+  decidedAt
+}
+
+class Notification {
+  recipientId
+  createdAt
+  readAt?
+  deliveryState
+}
+
+class Payment {
+  payerId
+  payeeId
+  amount: BigDecimal
+  currencyCode
+  paymentDate
+  recordedAt
+}
+
+class ReceiptMetadata {
+  privateStorageKey
+  mediaType
+  byteSize
+  checksum
+}
+
+class ReportQuery <<transient>> {
+  requesterId
+  startDateInclusive
+  endDateInclusive
+  filters
+}
+
+class PairwiseBalance <<derived view>> {
+  debtorId
+  creditorId
+  currencyCode
+  amount
+}
+
+Account "1" -- "0..*" GroupMembership
+Group "1" -- "1..*" GroupMembership
+Group "1" -- "0..*" Expense
+Account "1" -- "0..*" Expense : submits / pays
+Expense "1" -- "1..*" ExpenseShare
+Account "1" -- "0..*" ExpenseShare : participates
+Expense "1" -- "0..*" ReviewDecision
+Account "1" -- "0..*" ReviewDecision : reviews
+Expense "1" -- "0..1" ReceiptMetadata
+Expense "1" -- "0..*" Notification
+Account "1" -- "0..*" Notification : receives
+Group "1" -- "0..*" Payment
+Account "1" -- "0..*" Payment : payer
+Account "1" -- "0..*" Payment : payee
+Group .. PairwiseBalance : scope
+ExpenseShare .. PairwiseBalance : approved obligations
+Payment .. PairwiseBalance : same-pair reductions
+Account .. ReportQuery : requests
+
+note right of PairwiseBalance
+Derived only from finally approved
+expense shares and payments for the
+same user pair/group/currency.
+No cross-pair debt redirection.
+end note
+
+note bottom of Expense
+Submitter is payer and participant.
+Only final approval affects balances.
+end note
+
+@enduml

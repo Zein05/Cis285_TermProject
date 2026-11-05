@@ -1,0 +1,102 @@
+@startuml
+title SplitSmart - proposed domain and persistence relationships
+hide methods
+skinparam classAttributeIconSize 0
+class Account {
+  accountId
+  email
+  passwordHash
+  status
+}
+class Group {
+  groupId
+  name
+  currencyCode
+  currencyScale
+  status
+}
+class Membership {
+  role
+  joinedAt
+  endedAt
+  status
+}
+class Expense {
+  expenseId
+  amount: BigDecimal
+  expenseDate
+  splitMethod
+  status
+  version
+}
+class ExpenseShare {
+  shareAmount: BigDecimal
+  percentage: BigDecimal [optional]
+}
+class ApprovalPolicy {
+  stages
+}
+class ApprovalDecision {
+  stage
+  decision
+  decidedAt
+  idempotencyKey
+}
+class Notification {
+  recipientId
+  createdAt
+  readAt
+  deliveryState
+}
+class LedgerEntry {
+  fromAccountId
+  toAccountId
+  amount: BigDecimal
+  entryKind
+}
+class PairwiseBalance <<derived/cache>> {
+  accountLowId
+  accountHighId
+  signedNet: BigDecimal
+  asOfVersion
+}
+class Payment {
+  payerId
+  payeeId
+  amount: BigDecimal
+  paymentDate
+  idempotencyKey
+}
+class Receipt {
+  storageKey
+  mediaType
+  contentHash
+}
+Account "1" -- "0..*" Membership
+Group "1" -- "0..*" Membership
+Account "1 creator" -- "0..*" Group
+Group "1" -- "0..*" Expense
+Expense "1" *-- "1..*" ExpenseShare
+Account "1 participant" -- "0..*" ExpenseShare
+Group "1" -- "1" ApprovalPolicy
+Expense "1" -- "0..*" ApprovalDecision
+Account "1 reviewer" -- "0..*" ApprovalDecision
+Expense "1" -- "0..*" Notification
+Account "1 recipient" -- "0..*" Notification
+Expense "1 approved source" -- "0..*" LedgerEntry
+Payment "1 payment source" -- "0..1" LedgerEntry
+Group "1" -- "0..*" LedgerEntry
+Group "1" -- "0..*" PairwiseBalance
+Expense "1" -- "0..1" Receipt
+Account "1 payer/payee" -- "0..*" Payment
+Group "1" -- "0..*" Payment
+note right of Expense
+  submitterId = payerId
+  submitter is among the shares
+  Pending/rejected => no ledger entry
+end note
+note bottom of PairwiseBalance
+  Rebuildable projection from immutable ledger.
+  Pair key prevents cross-user debt redirection.
+end note
+@enduml
