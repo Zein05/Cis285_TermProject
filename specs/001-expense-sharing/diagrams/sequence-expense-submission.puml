@@ -1,0 +1,55 @@
+@startuml
+title SplitSmart expense submission
+actor Submitter
+participant "Client (Swing MVP / future client)" as Client
+participant "SubmitExpense use case" as App
+participant "Authorization and split rules" as Domain
+participant "Receipt port" as Receipt
+database "Transaction / repositories" as Store
+queue "Notification outbox / inbox" as Outbox
+participant "Notification delivery adapter" as Delivery
+
+Submitter -> Client : enter expense, participants, split, optional receipt
+Client -> App : submit(command, actor, requestId)
+App -> Domain : authorize group member; validate positive amount,\nrequired fields, payer/participant, split inputs
+alt unauthorized or invalid
+  Domain --> App : explicit validation/authorization error
+  App --> Client : reject; no expense, shares, receipt link, or notice
+else valid
+  App -> Domain : allocate exact shares under approved currency policy
+  alt allocation cannot reconcile / policy unavailable
+    Domain --> App : explicit policy or reconciliation error
+    App --> Client : reject; no partial persistence
+  else valid shares
+    opt receipt supplied
+      App -> Receipt : validate and stage privately
+      alt receipt rejected or storage failure
+        Receipt --> App : explicit failure
+        App --> Client : reject; no pending expense
+      else stored
+        Receipt --> App : staged key + metadata
+      end
+    end
+    App -> Store : begin; save PENDING_REVIEW expense/shares,\nreceipt metadata and idempotent notice intents
+    alt transaction failure
+      Store --> App : rollback/error
+      App -> Receipt : discard staged object
+      Receipt --> App : cleanup status (surface/queue failure)
+      App --> Client : explicit failure
+    else committed
+      Store --> App : pending expense id
+      App -> Delivery : dispatch notice intents asynchronously
+      alt delivery fails
+        Delivery --> App : failure recorded/retryable
+        note right of App
+          Expense remains pending. Do not claim
+          successful delivery; retry is idempotent.
+        end note
+      else delivered/queued
+        Delivery --> App : delivery state recorded
+      end
+      App --> Client : pending review confirmation
+    end
+  end
+end
+@enduml

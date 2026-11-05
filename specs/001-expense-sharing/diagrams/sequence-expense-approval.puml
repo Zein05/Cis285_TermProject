@@ -1,0 +1,51 @@
+@startuml
+title SplitSmart expense review and final ledger posting
+actor Reviewer
+participant "Review client" as Client
+participant "ReviewExpense use case" as App
+participant "Authorization / state rules" as Domain
+database "Transaction / repositories" as Store
+participant "Projection updater" as Projection
+queue "Notification outbox" as Outbox
+
+Reviewer -> Client : approve or reject
+Client -> App : decide(expenseId, action, expectedVersion, requestId)
+App -> Domain : authorize reviewer; validate pending state/version
+alt unauthorized
+  Domain --> App : forbidden
+  App --> Client : reject; no state or ledger change
+else stale, already final, or duplicate conflict
+  Domain --> App : conflict or idempotent prior result
+  App --> Client : explicit current result; no duplicate posting
+else authorized and current
+  App -> Store : begin transaction; append immutable decision
+  alt reject
+    App -> Store : set REJECTED; create no obligations
+    Store --> App : commit
+    App --> Client : rejected; no balance effect
+  else approve, more stages remain
+    App -> Store : advance stage; keep PENDING_REVIEW
+    Store --> App : commit
+    App --> Client : awaiting next reviewer; no balance effect
+  else final approval
+    App -> Domain : derive one obligation per positive non-payer share
+    Domain --> App : distinct obligations with obligationId\nand (expense, debtor, creditor, kind) key
+    App -> Store : conditional final-state transition; insert all obligations
+    App -> Store : enforce unique source keys; update projection or mark dirty
+    App -> Store : enqueue notification intents in transaction
+    alt duplicate source / transaction failure
+      Store --> App : rollback or idempotent existing result
+      App --> Client : no partial posting; report conflict/failure
+    else committed once
+      Store --> App : approved + all obligation postings
+      App -> Outbox : dispatch committed intents asynchronously
+      App --> Client : approved; canonical balance result
+    end
+  end
+end
+note over Store
+Approval decision, final state and every obligation commit atomically.
+Pending/rejected expenses have no ledger obligations.
+Projection is rebuildable and never the source of truth.
+end note
+@enduml

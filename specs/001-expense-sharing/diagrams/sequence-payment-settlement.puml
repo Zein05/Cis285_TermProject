@@ -1,0 +1,46 @@
+@startuml
+title SplitSmart pairwise payment settlement
+actor "Authorized payer" as Payer
+participant "Client" as Client
+participant "RecordPayment use case" as App
+participant "Pair and policy validation" as Domain
+database "Transaction / repositories" as Store
+queue "Notification outbox" as Outbox
+
+Payer -> Client : record payment to named payee
+Client -> App : record(group, payer, payee, amount, date, requestId)
+App -> Domain : authorize; validate positive exact amount,\ndistinct endpoints and same group/currency pair
+alt invalid pair, unauthorized, or invalid amount
+  Domain --> App : explicit validation error
+  App --> Client : reject; no financial facts
+else valid request
+  App -> Store : begin transaction; check idempotency and current pair balance
+  alt duplicate request
+    Store --> App : prior result
+    App --> Client : return same committed result; no second posting
+  else stale version / wrong pair / policy violation
+    Store --> App : conflict or explicit rejection
+    App --> Client : reject; no changes
+  else overpayment policy unresolved or exceeded
+    Store --> App : rollback
+    App --> Client : explicit policy error; no posted payment
+  else valid settlement
+    App -> Store : insert committed PostedPayment
+    App -> Store : insert exactly one LedgerEntry with unique payment source key
+    App -> Store : update or mark only named pair projection dirty
+    App -> Outbox : enqueue notices in same transaction
+    alt transaction failure
+      Store --> App : rollback payment and posting
+      App --> Client : explicit failure
+    else commit
+      Store --> App : payment + one posting + pair result
+      App --> Client : settlement recorded and balance updated
+    end
+  end
+end
+note over Store
+Payment and its one ledger posting commit atomically. A pending/failed
+PaymentAttempt is not a posted financial fact and has no ledger entry.
+Overpayment, semantic duplicate and reversal policies require owner approval.
+end note
+@enduml

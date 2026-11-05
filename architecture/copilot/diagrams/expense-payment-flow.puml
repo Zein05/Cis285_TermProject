@@ -1,0 +1,56 @@
+@startuml
+title SplitSmart - expense approval and pairwise payment sequence
+actor Submitter
+actor Reviewer
+participant "Swing / future client" as Client
+participant "Application Use Case" as App
+participant "Domain Policies" as Domain
+database "Repository / DB" as DB
+participant "Notification Port" as Notify
+
+Submitter -> Client : enter expense and participants
+Client -> App : submitExpense(command, actor)
+App -> Domain : validate amount, membership, payer, split
+Domain --> App : exact BigDecimal shares or errors
+alt invalid
+  App --> Client : correction errors; no saved review
+else valid
+  App -> DB : transaction: pending expense + shares + inbox notices
+  DB --> App : committed pending expense
+  App -> Notify : dispatch/record notices to other members
+  App --> Client : pending confirmation
+end
+
+Reviewer -> Client : approve or reject
+Client -> App : decide(expenseId, decision, expectedVersion)
+App -> Domain : authorize and transition
+alt rejected
+  App -> DB : transaction: decision + rejected state
+  note right of DB
+    No obligation entries;
+    no balance effect.
+  end note
+else approved, another stage remains
+  App -> DB : transaction: decision + next pending stage
+else final approval
+  App -> DB : transaction: decision + approved state + pair obligations
+  note right of DB
+    Unique source and version check
+    prevent duplicate/racing posting.
+  end note
+end
+DB --> App : committed result or conflict
+App --> Client : current workflow state
+
+Submitter -> Client : record payment to named payee
+Client -> App : recordPayment(pair, amount, idempotencyKey)
+App -> Domain : validate positive amount and named pair
+App -> DB : transaction: check outstanding + post payment + update projection
+note right of DB
+  Proposed MVP rejects overpayment.
+  Only the named pair changes.
+  Semantic duplicate policy remains open.
+end note
+DB --> App : committed result or conflict
+App --> Client : updated pairwise amount
+@enduml

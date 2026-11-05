@@ -1,0 +1,56 @@
+@startuml
+title SplitSmart - proposed component and dependency architecture
+skinparam componentStyle rectangle
+top to bottom direction
+package "Presentation" {
+  [Swing Views / Controllers] as Swing
+  [Future Web / Android / iOS Clients] as Clients
+}
+package "Application" {
+  [Use Cases] as UseCases
+  [Authorization / Session Context] as Authz
+  [Transaction Coordinator] as Tx
+  [Repository, Notification,\nReceipt Ports] as Ports
+}
+package "Domain (UI and storage independent)" {
+  [Account and Group Policies] as Identity
+  [Expense Validation] as Expense
+  [SplitAllocator\n(BigDecimal)] as Split
+  [Approval State Machine] as Approval
+  [Pairwise Ledger Rules] as Ledger
+  [Payment Rules] as Payment
+  [Report Criteria] as Reports
+}
+package "Adapters" {
+  [SQLite Repositories] as SQLite
+  [In-app Notification Inbox] as Inbox
+  [Local Receipt Store] as Receipt
+  [Future Authenticated API Adapter] as API
+  [Future Shared DB / Object Store] as FutureStore
+}
+Swing --> UseCases
+Clients ..> API : future only
+API --> UseCases : same application boundary
+UseCases --> Authz
+UseCases --> Tx
+UseCases --> Identity
+UseCases --> Expense
+UseCases --> Split
+UseCases --> Approval
+UseCases --> Ledger
+UseCases --> Payment
+UseCases --> Reports
+UseCases --> Ports
+SQLite ..|> Ports
+Inbox ..|> Ports
+Receipt ..|> Ports
+FutureStore ..> Ports : future adapters
+note right of Expense
+  Submission validates before persistence.
+  Submitter is payer and participant.
+end note
+note right of Ledger
+  Accepted obligations and payments only.
+  Never net across different pairs.
+end note
+@enduml

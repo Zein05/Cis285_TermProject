@@ -1,0 +1,43 @@
+@startuml
+title SplitSmart - platform and trust boundaries (proposed)
+left to right direction
+actor "Account holder / group member" as User
+actor "Group reviewer / manager" as Reviewer
+rectangle "Desktop MVP (local; proposed)" {
+  component "Java Swing client" as Swing
+  component "Application + domain core" as Core
+  database "Local SQLite DB" as LocalDB
+  folder "Private local receipt files" as LocalReceipts
+  Swing --> Core : local use cases
+  Core --> LocalDB : repositories
+  Core --> LocalReceipts : receipt port
+}
+rectangle "Full product (future proposal; not in repository)" {
+  component "Web client" as Web
+  component "Android client" as Android
+  component "iOS client" as IOS
+  component "Authenticated API\n(authoritative use cases)" as API
+  database "Shared relational DB" as SharedDB
+  cloud "Private receipt object store" as ObjectStore
+  Web --> API : TLS / authenticated requests
+  Android --> API : TLS / authenticated requests
+  IOS --> API : TLS / authenticated requests
+  API --> SharedDB : transactional persistence
+  API --> ObjectStore : authorized receipt access
+}
+User --> Swing : desktop only
+Reviewer --> Swing : desktop workflow
+User --> Web : future
+User --> Android : future
+User --> IOS : future
+note bottom of Swing
+  Local account/data state is not
+  shared across devices. Does not
+  satisfy FR-010.
+end note
+note bottom of API
+  Future architecture only.
+  No API/mobile/web implementation
+  was observed.
+end note
+@enduml

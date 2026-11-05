@@ -1,10 +1,12 @@
 # Feature Specification: SplitSmart Expense Sharing
 
-**Feature Branch**: `not created (workspace is not a Git repository)`
+**Feature ID**: `001-expense-sharing`
+
+**Active Git branch**: `docs/architecture-prompt-drafts`
 
 **Created**: 2026-10-29
 
-**Status**: Draft
+**Status**: Review draft; not owner-approved
 
 **Input**: User description: Read `UserRequirement.md` in this workspace as the authoritative customer requirements. Write a testable SplitSmart feature specification: actors, user scenarios, functional and non-functional requirements, acceptance criteria, requirement IDs (FR-001, etc.), and open questions. Preserve all original customer features in the requirements inventory; label the Java Swing MVP subset separately. Do not write Java code. Do not edit `UserRequirement.md`.
 
@@ -176,6 +178,15 @@ These are customer needs transcribed from `UserRequirement.md`; the implementati
 - **AC-012 (NFR-004)**: Under documented test conditions at the specified data volume, at least 95 of 100 balance or filtered-report requests complete within 3 seconds.
 - **AC-013 (FR-003, FR-004)**: A zero or negative expense amount, a negative percentage, or percentages that do not total 100% are rejected with a correction message; none of these submissions enters review or changes a balance.
 
+### Acceptance Evidence and Status
+
+AC-001 through AC-013 are required acceptance outcomes, not claims that they have
+passed. The evidence plan for each criterion is in the
+[traceability matrix](./traceability-matrix.md) and
+[test strategy](./test-strategy.md). Tests, usability studies, performance runs,
+and cross-platform verification have not been performed in this repository.
+AC-008 cannot be satisfied by the Swing MVP.
+
 ### Java Swing MVP Subset (Implementation Decisions, Not Customer Requirements)
 
 The following is a proposed desktop MVP subset based on the project constitution's Java 21, Maven, and Swing baseline. It is an implementation boundary, not a change to the customer requirements. The desktop MVP does not by itself satisfy FR-010.
@@ -188,6 +199,11 @@ The following is a proposed desktop MVP subset based on the project constitution
 | Balances and payments | FR-007, FR-008 | Pairwise outstanding balances and recorded partial or full payments, with exact monetary reconciliation. |
 | Basic reports | FR-009 | Expense, balance, and payment summaries. Custom date ranges and parameters remain in the full customer requirement and are not assumed complete in the MVP. |
 | Platform availability | FR-010 | Not included in the Java Swing desktop subset; web, Android, and iOS scope remains unresolved and required for full customer coverage. |
+
+The MVP table is a proposed interim scope only. Full product scope remains all
+FR-001–FR-010 and NFR-001–NFR-005. Future scope includes shared service/API,
+primary web client, Android and iOS clients, production identity, and
+cross-platform consistency. No customer requirement is out of scope or waived.
 
 ### Key Entities
 
@@ -236,3 +252,25 @@ The following is a proposed desktop MVP subset based on the project constitution
 7. What custom report filters, export formats, and retention rules are required?
 8. What is the approved delivery plan and scope for the primarily web-based product and Android/iOS apps alongside the Java Swing MVP?
 9. Is the Java Swing MVP expected to use shared remote accounts and groups across devices, or is a local demonstration sufficient?
+10. Which currencies/scales are supported, is mixed-currency activity allowed, and what rounding/remainder rule is approved?
+11. How should the system handle overpayments, duplicate payment requests, and idempotent retries?
+12. What audited workflow is required for payment reversals and approved-expense corrections?
+13. What historical expense, report, and receipt access remains after a member is removed?
+14. Which receipt file types and size limits are accepted, and what storage, retention, and cleanup policy applies?
+15. Which notification channels, retry behavior, delivery guarantees, and failure visibility are required?
+
+Architecture alternatives and the current owner-blocking status of these questions
+are recorded in the [decision register](./decision-register.md).
+
+## Canonical Design and Verification Documents
+
+- [Architecture plan](./plan.md) and [alternatives research](./research.md)
+- [Data model and financial ledger](./data-model.md) and [glossary/business rules](./glossary.md)
+- [Module contracts](./contracts/module-boundaries.md)
+- [Decision register](./decision-register.md) and [risk register](./risks.md)
+- [Requirements traceability](./traceability-matrix.md) and [test strategy](./test-strategy.md)
+- [UML inventory](./diagrams/README.md) and [validation quickstart](./quickstart.md)
+
+All linked design choices remain proposals or open decisions unless explicitly
+approved by the project owner. Their presence does not indicate implementation,
+verification, or acceptance.

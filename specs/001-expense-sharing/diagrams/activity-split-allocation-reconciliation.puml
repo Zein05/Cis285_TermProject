@@ -1,0 +1,38 @@
+@startuml
+title SplitSmart split allocation and reconciliation
+
+start
+:Read expense total, currency, participants and split inputs;
+if (Positive amount and supported currency policy available?) then (yes)
+  if (Distinct active group members; submitter included?) then (yes)
+    if (Equal split?) then (equal)
+      :Calculate exact ideal shares;
+    else (percentage)
+      if (All percentages nonnegative and total exactly 100%?) then (yes)
+        :Calculate exact ideal shares;
+      else (no)
+        :Return input error; create no expense;
+        stop
+      endif
+    endif
+    :Convert to approved minor-unit scale;
+    :Allocate indivisible remainder using owner-approved deterministic rule;
+    if (Sum of shares equals expense total exactly?) then (yes)
+      :Return shares and applied policy/version;
+      :Persist only as pending review with submission transaction;
+    else (no)
+      :Return reconciliation failure; persist nothing;
+    endif
+  else (no)
+    :Reject participants; persist nothing;
+  endif
+else (no)
+  :Reject amount or block until currency policy approved;
+endif
+stop
+
+note right
+Currency scale, rounding and tie-break remain owner decisions.
+Do not treat the proposed largest-remainder policy as approved.
+end note
+@enduml
