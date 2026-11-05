@@ -1,5 +1,8 @@
 # Decision Register
 
+> **Historical reference only — superseded.** Use the canonical register at
+> [specs/001-expense-sharing/decision-register.md](../../specs/001-expense-sharing/decision-register.md).
+
 ## Status convention
 
 Every entry is **Proposed — pending human/project-owner approval**. This document
@@ -147,4 +150,3 @@ FR-010 gap to remain visible and any exception to be approved explicitly.
 | O-12 | Removed member with pending review/outstanding debt | Historical participation and future access semantics need clarity | Preserve ledger/history; decide pending-review and report access policy |
 | O-13 | Whether submitter may approve, and no-reviewer behavior | Affects liveness and conflict of interest | Proposed deny self-approval; define reassignment/escalation |
 | O-14 | Receipt count, size/type limits, malware/privacy/retention | Receipt storage, upload and deployment requirements not specified | Define limits and content lifecycle before remote upload implementation |
-

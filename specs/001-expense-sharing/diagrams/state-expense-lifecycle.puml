@@ -1,0 +1,25 @@
+@startuml
+title SplitSmart expense lifecycle
+
+[*] --> Draft : begin entry
+Draft --> PendingReview : submit [valid fields and split]
+Draft --> Draft : invalid input / correct
+PendingReview --> PendingReview : approve [more stages remain]\n/ append decision, advance stage
+PendingReview --> Approved : approve [final stage]\n/ atomic obligation posting
+PendingReview --> Rejected : reject [authorized reviewer]\n/ append decision, no posting
+Approved --> [*]
+Rejected --> [*]
+
+note right of PendingReview
+No balance effect and no obligation entries.
+Unauthorized, duplicate, or stale decisions do not change state.
+end note
+note right of Approved
+Final approval and all distinct obligation postings are one logical,
+transactional, idempotent operation.
+end note
+note bottom
+Cancellation, edits, corrections, and resubmission are not specified; do not
+infer transitions for them. Approval roles/self-approval/stage policy are open.
+end note
+@enduml

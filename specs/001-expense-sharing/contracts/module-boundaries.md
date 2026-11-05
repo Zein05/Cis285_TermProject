@@ -36,3 +36,27 @@ Exact errors/messages must be mapped to actionable user corrections (especially 
 ## Future client/API boundary
 
 Web, Android, and iOS clients must use an authenticated service boundary for shared data; they must not access the database directly. The service is authoritative for authorization, split allocation, review transitions, pairwise balances, and payments. Client contract tests use the same golden financial fixtures. API technology/versioning, session protocol, pagination, upload mechanism, and exact schemas remain open.
+
+## Financial posting integrity contract
+
+- One final-approved expense may generate many obligations. Each obligation has
+  its own stable `obligationId` and a unique logical key
+  `(expenseId, debtorId, creditorId, entryKind)`. An expense-only uniqueness key
+  is invalid.
+- The final approval state transition, immutable decision, all obligations, and
+  projection update/dirty marker are atomic. Retried/concurrent approval cannot
+  post an obligation twice.
+- A committed `PostedPayment` has exactly one `LedgerEntry` whose unique source
+  identifies that payment. The payment and posting commit atomically. Failed or
+  pending attempts are separate `PaymentAttempt` records and have no ledger
+  entry.
+- Payment validation and balance mutation are confined to the named group,
+  currency, payer, and payee pair. Overpayment semantics remain blocked on owner
+  policy; do not silently return success.
+- Pairwise balance is derived from immutable facts or held as a rebuildable
+  projection. Projection failure cannot erase or change the committed ledger.
+
+The exact identity/constraints are specified in
+[data-model.md](../data-model.md); the related execution flows are in
+[sequence-expense-approval.puml](../diagrams/sequence-expense-approval.puml) and
+[sequence-payment-settlement.puml](../diagrams/sequence-payment-settlement.puml).

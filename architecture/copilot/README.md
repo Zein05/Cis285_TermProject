@@ -1,4 +1,16 @@
-# SplitSmart Architecture Proposal
+# Historical SplitSmart Architecture Proposal — Superseded
+
+**Status:** Retained as historical input/reference material. Do not treat this
+directory as an authoritative or independently maintained architecture baseline.
+The canonical requirements and design live in
+[`specs/001-expense-sharing/`](../../specs/001-expense-sharing/)—especially
+[spec.md](../../specs/001-expense-sharing/spec.md),
+[plan.md](../../specs/001-expense-sharing/plan.md),
+[data-model.md](../../specs/001-expense-sharing/data-model.md),
+[traceability-matrix.md](../../specs/001-expense-sharing/traceability-matrix.md),
+[decision-register.md](../../specs/001-expense-sharing/decision-register.md),
+[risks.md](../../specs/001-expense-sharing/risks.md), and
+[test-strategy.md](../../specs/001-expense-sharing/test-strategy.md).
 
 ## Scope and status
 
@@ -44,4 +56,3 @@ and iOS clients.
 - [Component architecture](./diagrams/component-architecture.puml)
 - [Domain model](./diagrams/domain-model.puml)
 - [Expense and settlement flow](./diagrams/expense-payment-flow.puml)
-

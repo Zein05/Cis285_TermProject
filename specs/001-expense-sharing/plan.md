@@ -1,6 +1,6 @@
 # Implementation Plan: SplitSmart Expense Sharing Architecture
 
-**Branch**: `001-expense-sharing` (Spec Kit feature identifier) | **Active Git branch**: `docs/architecture-prompt-drafts` | **Date**: 2026-11-04 | **Spec**: [spec.md](./spec.md)
+**Branch**: `001-expense-sharing` (Spec Kit feature identifier) | **Active Git branch**: `docs/architecture-prompt-drafts` | **Date**: 2026-11-05 | **Spec**: [spec.md](./spec.md)
 
 **Input**: Customer baseline [UserRequirement.md](../../UserRequirement.md), approved project constraints [constitution.md](../../.specify/memory/constitution.md), and clarified feature specification [spec.md](./spec.md).
 
@@ -12,6 +12,12 @@ For the desktop MVP, use a Java/Swing presentation layer that calls application 
 
 Approval configuration, reviewer eligibility, currency and remainder rules, overpayment handling, storage and deployment choices, and the delivery plan for FR-010 remain owner decisions. No unresolved policy is silently filled in.
 
+The canonical cross-artifact status is in [traceability-matrix.md](./traceability-matrix.md);
+financial entities and constraints are in [data-model.md](./data-model.md); owner
+decisions and risks are maintained only in [decision-register.md](./decision-register.md)
+and [risks.md](./risks.md). This plan's inline tables are explanatory summaries,
+not parallel authorities.
+
 ## Technical Context
 
 - **Language/Version**: Java 21 is the Constitution baseline; no Java project or compiler target is present to verify. Web/mobile languages are undecided.
@@ -20,7 +26,7 @@ Approval configuration, reviewer eligibility, currency and remainder rules, over
 - **Testing**: JUnit 5 is required by the Constitution. No tests or test runner are present. Domain rules must be testable without launching Swing.
 - **Target Platform**: Desktop Swing is the proposed MVP target. The customer target is primarily web plus Android and iOS; this remains an unmet requirement until those clients are delivered and validated.
 - **Project Type**: Proposed modular Java desktop MVP with a migration path to a service-backed multi-client product; no application project is currently implemented.
-- **Performance Goals**: NFR-004: for a group up to 100 members and 10,000 expense/payment records, at least 95 of 100 balance/date-filtered report requests display in under 3 seconds under documented, agreed test conditions. No performance results exist.
+- **Performance Goals**: NFR-004: for a group up to 100 members and 10,000 expense/payment records, at least 95 of 100 balance/date-filtered report requests display within 3 seconds under documented, agreed test conditions. No performance results exist.
 - **Constraints**: Preserve FR-001–FR-010; Swing alone cannot satisfy FR-010. Use `BigDecimal` for monetary calculations, define scale/rounding/remainder policy before implementation, preserve pairwise debts, and keep pending/rejected expenses out of balances. Password reset and multi-user deployment need an actual delivery/authentication boundary.
 - **Scale/Scope**: NFR-004 workload is the only quantified scale target. The specification assumes one currency per group and does not assume multi-currency conversion. Hosting, availability, retention, backup objectives, and offline behavior are unspecified.
 
@@ -75,6 +81,9 @@ All options below are **implementation decisions under consideration**, not cust
 **Recommendation (proposal)**: Keep the initial Swing MVP a local demonstration only if the owner approves that boundary. Put use cases and domain rules behind ports so that the Java core can run in the desktop process for the MVP and in a future service process. For full delivery, prefer a modular monolith service/API with web-first and Android/iOS clients; clients request authoritative shares and balances rather than independently calculating them. Avoid microservices until a measured requirement justifies their operational cost. Do not assume a Java domain binary can run on iOS; cross-platform consistency should come from the server contract and shared test vectors.
 
 ### Decision register
+
+The following is a plan-level summary. The canonical decision records, statuses,
+owners, and review dates are in [decision-register.md](./decision-register.md).
 
 | ID | Classification | Decision / status | Rationale and alternatives considered | Consequence / approval needed |
 |---|---|---|---|---|
@@ -132,7 +141,7 @@ Classification values use the categories defined above. “Planned test” is no
 | NFR-001 | Customer requirement | Authenticated account and group authorization at application/service boundary | Allowed/denied access tests for account, member, non-member, manager, receipt, and report; AC-009. |
 | NFR-002 | Customer requirement | Exact decimal arithmetic, explicit unit scale and remainder allocation | 1,000-case reconciliation/property tests; every share sum equals expense at smallest supported unit; AC-010. |
 | NFR-003 | Customer requirement | Expense-entry UX and correction messages | Representative usability test: at least 9/10 first-attempt unassisted; AC-011. |
-| NFR-004 | Customer requirement | Indexed query/report boundary; measure before adding cache | Documented 100-member/10,000-record workload, 100 requests, at least 95 under 3 seconds; AC-012. |
+| NFR-004 | Customer requirement | Indexed query/report boundary; measure before adding cache | Documented 100-member/10,000-record workload, 100 requests, at least 95 within 3 seconds; AC-012. |
 | NFR-005 | Customer requirement | Server-authoritative financial result and stable client contract | Same fixture through web/Android/iOS; exact participant shares and pairwise balances match; AC-008. |
 | SC-001 | Customer requirement (success criterion) | Account, group, expense-entry workflow and usability | At least 9/10 representative users create/join/submit without assistance; measure with the AC-011 usability protocol. |
 | SC-002 | Customer requirement (success criterion) | Split calculator and exact decimal policy | Reconcile all 1,000 equal/percentage fixtures to the smallest supported currency unit; AC-010. |
@@ -151,7 +160,7 @@ Classification values use the categories defined above. “Planned test” is no
 | AC-009 | Customer requirement (acceptance criterion) | NFR-001 authorization | Allowed and denied data-access test matrix. |
 | AC-010 | Customer requirement (acceptance criterion) | NFR-002 arithmetic and ledger | Equal/percentage remainder and payment reconciliation. |
 | AC-011 | Customer requirement (acceptance criterion) | NFR-003 usability | At least 9 of 10 participants complete first submission unassisted. |
-| AC-012 | Customer requirement (acceptance criterion) | NFR-004 performance | At least 95/100 specified requests under 3 seconds under documented conditions. |
+| AC-012 | Customer requirement (acceptance criterion) | NFR-004 performance | At least 95/100 specified requests within 3 seconds under documented conditions. |
 | AC-013 | Customer requirement (acceptance criterion) | FR-003/004 input validation | Invalid amount/percentage rejected before review with correction message and no balance effect. |
 
 ### MVP versus full-product coverage
@@ -221,7 +230,7 @@ specs/001-expense-sharing/
 docs/prompts/architecture-design-review-prompts.md
 ```
 
-No `pom.xml`, `src/`, Java source, tests, client project, API, or database configuration was found. The feature specification's old branch metadata says the workspace was not a Git repository; the current workspace is a Git repository on `docs/architecture-prompt-drafts`. The Spec Kit setup identifier is `001-expense-sharing`; no branch switch is performed here.
+No `pom.xml`, `src/`, Java source, tests, client project, API, or database configuration was found. The current workspace branch is `docs/architecture-prompt-drafts`; the Spec Kit setup identifier is `001-expense-sharing`. No branch switch is performed here.
 
 ### Proposed implementation layout (not present)
 
@@ -256,3 +265,63 @@ Only add server/API, web, Android, and iOS projects after the owner approves FR-
 ## Complexity Tracking
 
 No Constitution violation is being waived. The service/API and additional clients are justified only by the still-required FR-010 full product and are future work, not MVP claims. Repository/transaction boundaries are justified by storage uncertainty, financial atomicity, and the local-to-shared deployment distinction; they must remain small and requirement-focused. No microservices or unapproved framework/database are proposed.
+
+## Reconciled architecture and transaction baseline
+
+### Dependency and trust boundaries
+
+The MVP dependency direction is `Swing presentation -> application use cases ->
+domain`; infrastructure adapters implement ports owned by the application/core.
+The domain has no Swing, database, filesystem, HTTP, identity-provider, or
+notification-provider dependency. In the future product, web/Android/iOS clients
+call an authenticated service/API; that service is the single authority for
+authorization, allocation, approval, ledger posting, pairwise balances, and
+payments. Clients never write to the database or post ledger facts directly.
+
+The application boundary authorizes every operation against the authenticated
+actor and current group policy. Creator/manager membership authority does not
+automatically imply reviewer authority. Self-approval, reviewer eligibility and
+stage count remain open. Removed membership is retained historically; former
+member access to historic expenses, reports, and receipts is an owner decision.
+
+### Transaction and consistency boundaries
+
+| Use case | Atomic records/effects | Failure/concurrency behavior |
+|---|---|---|
+| Submit expense | Pending expense, exact shares, receipt metadata reference and logical notification intents | Validate before writes; invalid input or transaction failure leaves no reviewable expense or financial effect |
+| Final approval | Expected-version state transition, immutable decision, all obligations, and projection update/dirty marker | One transaction; unique source keys prevent duplicates; stale/conflicting actions fail explicitly or return the prior idempotent result |
+| Non-final approval/rejection | Immutable decision and next pending stage or rejected state | No obligations; decision and state transition are atomic |
+| Record payment | Idempotency result, committed `Payment`, exactly one payment `LedgerEntry`, and projection update/dirty marker | One transaction; failed/pending attempts are not financial facts; no partial posting; same request cannot post twice |
+
+Ledger facts remain immutable. A pairwise balance is derived on demand or stored
+as a versioned rebuildable projection. Projection choice is based on measurement;
+the projection can never become an independent source of truth. Payment
+overpayment, semantic duplicate, and reversal behavior remain owner-blocking
+decisions.
+
+### Persistence, receipts, and notifications
+
+Persistence is behind repository and transaction ports. SQLite (local embedded),
+H2 (local embedded), and PostgreSQL (shared service candidate) remain alternatives;
+no engine is selected. The selected engine must prove exact monetary storage,
+foreign-key enforcement, transactional uniqueness, concurrency, migration, and
+backup/restore behavior. Receipt content uses a private storage adapter and
+metadata reference; permitted media types, byte limits, retention, scanning, and
+storage technology remain open. Notification intents are durable and
+idempotent; external delivery occurs after commit and reports retry/failure
+state without claiming delivery from mere event persistence.
+
+### Deployment and quality attributes
+
+The MVP is a local Java 21/Maven/Swing demonstration only, if approved; there is
+no application code or build configuration yet. The future product target is a
+shared service/API, shared relational persistence, primary web client, Android
+client, and iOS client. Platform order, native/store versus PWA meaning,
+hosting/availability, authentication/session lifecycle, offline behavior,
+backups/recovery objectives, and operational ownership are open. NFR-004's
+100-member/10,000-record workload and p95 threshold are acceptance conditions,
+not an architecture guarantee.
+
+Detailed components and public use-case contracts are in
+[contracts/module-boundaries.md](./contracts/module-boundaries.md). UML sources
+and their verification status are indexed in [diagrams/README.md](./diagrams/README.md).

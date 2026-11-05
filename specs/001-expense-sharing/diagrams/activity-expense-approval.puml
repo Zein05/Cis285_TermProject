@@ -1,0 +1,39 @@
+@startuml
+title SplitSmart expense approval activity
+
+start
+:Receive decision with actor, expected version, request ID;
+if (Reviewer authorized?) then (yes)
+  if (Expense pending and version current?) then (yes)
+    :Begin transaction;
+    :Append immutable review decision;
+    if (Reject?) then (yes)
+      :Set REJECTED;
+      :Create no obligations;
+      :Commit;
+    else (no)
+      if (More approval stages?) then (yes)
+        :Advance stage; remain PENDING_REVIEW;
+        :Commit without ledger effect;
+      else (final approval)
+        :Set final APPROVED state conditionally;
+        :Create one obligation per positive non-payer share;
+        :Enforce per-obligation unique source key;
+        :Update or invalidate rebuildable pairwise projection;
+        if (All writes valid?) then (yes)
+          :Commit state, decision, obligations and notice intents atomically;
+        else (no)
+          :Rollback all financial writes;
+          :Return explicit conflict/failure;
+        endif
+      endif
+    endif
+    :Deliver notices asynchronously;\nrecord failure/retry state without claiming delivery;
+  else (no)
+    :Return stale/final-state conflict or prior idempotent result;
+  endif
+else (no)
+  :Return authorization failure; no state change;
+endif
+stop
+@enduml

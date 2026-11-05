@@ -1,0 +1,50 @@
+@startuml
+title SplitSmart use cases — required product and MVP boundary
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Account holder" as Account
+actor "Group member" as Member
+actor "Group creator / manager" as Manager
+actor "Expense submitter /\npayer" as Submitter
+actor "Authorized reviewer\n(policy open)" as Reviewer
+actor "Notification recipient" as Recipient
+
+usecase "UC-01 Account lifecycle\n(register/sign in/reset/private data)" as UC1
+usecase "UC-02 Manage group and membership" as UC2
+usecase "UC-03 Submit expense" as UC3
+usecase "UC-04 Review expense" as UC4
+usecase "UC-05 View pairwise balances" as UC5
+usecase "UC-06 Record payment" as UC6
+usecase "UC-07 View expense, balance,\nand payment reports" as UC7
+usecase "UC-08 Use supported clients\n(full-product target)" as UC8
+usecase "Attach optional receipt" as Receipt
+usecase "Choose participants and split" as Split
+usecase "Approve expense" as Approve
+usecase "Reject expense" as Reject
+usecase "View expense notification" as Notification
+
+Account -- UC1
+Account -- UC7
+Account -- UC8
+Member -- UC2
+Manager -- UC2
+Submitter -- UC3
+Reviewer -- UC4
+Member -- UC5
+Member -- UC6
+Recipient -- Notification
+
+UC3 .> Split : <<include>>
+Receipt .> UC3 : <<extend>>
+Approve .> UC4 : <<extend>>
+Reject .> UC4 : <<extend>>
+UC3 -- Notification : creates notice
+
+note bottom
+Group-manager powers are limited to adding/removing members by the current
+requirement. Reviewer eligibility and self-approval are open decisions.
+Web, Android, and iOS are required full-product clients (FR-010); this diagram
+does not imply they are implemented. The Swing MVP is interim only.
+end note
+@enduml

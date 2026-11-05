@@ -1,5 +1,8 @@
 # Requirement Traceability Matrix
 
+> **Historical reference only — superseded.** Use the canonical matrix at
+> [specs/001-expense-sharing/traceability-matrix.md](../../specs/001-expense-sharing/traceability-matrix.md).
+
 ## Reading the status
 
 This is design-level coverage proposed for future work, not delivery status. The
@@ -71,4 +74,3 @@ remote store**, so it cannot satisfy FR-010 or AC-008. The future API/client
 architecture is a proposed route, not a committed or present repository capability.
 Do not mark FR-010, NFR-005, or SC-006 covered until all required clients are
 available and cross-platform tests pass. A delivery/scope decision is required.
-

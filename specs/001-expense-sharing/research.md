@@ -2,6 +2,10 @@
 
 **Status**: Research for an architecture proposal; no framework, database, identity provider, or client technology is approved by this document.
 
+Owner-blocking choices are tracked in the canonical
+[decision register](./decision-register.md); this research compares alternatives
+but does not make an owner decision.
+
 ## Decisions and evidence
 
 ### 1. Desktop MVP and full-product deployment
@@ -67,4 +71,7 @@
 5. Supported currency set, precision/scale, rounding mode, deterministic tie-break, and overpayment behavior?
 6. Review eligibility, self-approval, multiple-level configuration, notification channel, receipt limits/retention, edit/delete, report filters/exports?
 
-No measured performance result, repository dependency, or technology deployment was discovered. NFR-004 must be tested under owner-agreed conditions against the actual selected stack.
+No measured performance result, application dependency, or technology deployment
+was discovered. NFR-004 must be tested under owner-agreed conditions against the
+actual selected stack. For data entities, keys, transaction constraints and
+payment/obligation cardinality, see the canonical [data model](./data-model.md).

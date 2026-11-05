@@ -1,5 +1,8 @@
 # Test and Verification Strategy
 
+> **Historical reference only — superseded.** Use the canonical strategy at
+> [specs/001-expense-sharing/test-strategy.md](../../specs/001-expense-sharing/test-strategy.md).
+
 ## Scope and conventions
 
 No application code, Maven build, or tests were present in the inspected
@@ -78,4 +81,3 @@ criterion itself rather than inferring success from a passing build.
 - Full-product acceptance requires web, Android, and iOS implementations plus
   shared-data and parity tests. Until then FR-010, AC-008, NFR-005, and SC-006
   remain uncovered.
-

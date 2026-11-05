@@ -1,5 +1,8 @@
 # Risk Register
 
+> **Historical reference only — superseded.** Use the canonical register at
+> [specs/001-expense-sharing/risks.md](../../specs/001-expense-sharing/risks.md).
+
 Likelihood and impact are qualitative design estimates, not measured project
 statistics. Owner roles are proposed; assign named owners during human review.
 
@@ -18,4 +21,3 @@ statistics. Owner roles are proposed; assign named owners during human review.
 | R-11 | AI-generated diagrams/design are accepted without human verification | Medium | High | Review against source requirements, validate diagram syntax and implementation consistency; require owner sign-off | Human reviewer per Constitution VI | Open |
 | R-12 | Custom report filters, receipt retention, edit/delete, or audit policy are assumed without approval | Medium | Medium | Keep report/retention/correction decisions open; least privilege; immutable financial events pending policy | Product owner: resolve O-09/O-10/O-14 | Open |
 | R-13 | Domain logic is duplicated in future clients, leading to mismatched shares/balances | Medium | High | Shared API is source of truth; clients submit intent and render canonical outputs; cross-client golden fixtures | Full-product architect: enforce API boundary; test owner: NFR-005 | Open |
-

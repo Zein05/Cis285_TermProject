@@ -1,5 +1,9 @@
 @startuml
 title SplitSmart conceptual domain model
+legend top
+SUPERSEDED LEGACY INPUT — use class-domain-model.puml for the canonical
+reconciled class and financial posting relationships.
+endlegend
 hide methods
 skinparam classAttributeIconSize 0
 

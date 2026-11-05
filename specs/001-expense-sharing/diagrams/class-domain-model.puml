@@ -1,0 +1,143 @@
+@startuml
+title SplitSmart domain model — proposed
+hide methods
+skinparam classAttributeIconSize 0
+
+class Account {
+  accountId
+  email
+  state
+}
+class Group {
+  groupId
+  name
+  currencyCode
+  currencyScale <<open>>
+}
+class Membership {
+  role
+  state
+  joinedAt
+  endedAt
+}
+class Expense {
+  expenseId
+  amount: BigDecimal
+  occurredOn
+  splitMethod
+  state
+  version
+  submitterId = payerId
+}
+class ExpenseShare {
+  participantId
+  amount: BigDecimal
+  percentage?
+  allocationPolicyVersion?
+}
+class ApprovalPolicy {
+  policyId
+  version
+  stages
+}
+class ApprovalDecision {
+  decisionId
+  stage
+  outcome
+  reviewerId
+  policyVersion
+  idempotencyKey
+}
+class Obligation {
+  obligationId
+  debtorId
+  creditorId
+  amount: Money
+  sourceExpenseId
+}
+class LedgerEntry {
+  entryId
+  entryKind
+  sourceKey
+  amount: Money
+}
+abstract class PaymentAttempt {
+  requestId
+  state
+}
+class PostedPayment {
+  paymentId
+  payerId
+  payeeId
+  amount: Money
+  postedAt
+}
+class PairwiseBalance <<derived projection>> {
+  groupId
+  accountPair
+  signedAmount: Money
+  version
+}
+class ReceiptMetadata {
+  receiptId
+  storageKey
+  mediaType
+  byteSize
+  checksum
+}
+class Notification {
+  notificationId
+  recipientId
+  state
+}
+class Money <<value object>> {
+  amount: BigDecimal
+  currencyCode
+}
+class SplitAllocation <<value object>> {
+  method
+  shares
+  policyVersion?
+}
+
+Account "1" -- "0..*" Membership
+Group "1" -- "0..*" Membership
+Group "1" -- "0..*" Expense
+Expense "1" *-- "1..*" ExpenseShare
+Expense "1" -- "0..*" ApprovalDecision
+Group "1" -- "1..*" ApprovalPolicy : policy versions
+ApprovalPolicy "1" -- "0..*" ApprovalDecision : governs stages
+Account "1" -- "0..*" ApprovalDecision : reviews
+Expense "1" -- "0..1" ReceiptMetadata
+Expense "1" -- "0..*" Notification
+Account "1" -- "0..*" Notification : receives
+Expense "1" --> "0..*" Obligation : final approval creates
+ExpenseShare "1" --> "0..1" Obligation : non-payer share, if approved
+Obligation "1" --> "1" LedgerEntry : source posting
+PostedPayment "1" *-- "1" LedgerEntry : required committed posting
+PaymentAttempt "1" --> "0..1" PostedPayment : successful request
+Group .. PairwiseBalance : scope
+LedgerEntry ..> PairwiseBalance : source facts
+ExpenseShare ..> SplitAllocation : calculated by
+
+note right of Obligation
+Unique obligationId.
+Also UNIQUE(expenseId, debtorId, creditorId, entryKind).
+Multiple participants create multiple distinct obligations;
+zero-unit participant shares create no obligation.
+An expenseId-only unique key is invalid.
+end note
+note right of PostedPayment
+Only committed POSTED payment records are financial facts.
+Each has exactly one LedgerEntry (unique payment source key).
+Pending/failed PaymentAttempt has no LedgerEntry.
+end note
+note bottom of PairwiseBalance
+Rebuildable projection from immutable ledger facts. Netting is confined to
+one group/currency/account pair; no third-party debt redirection.
+end note
+note bottom of ApprovalPolicy
+Reviewer eligibility, self-approval, and number/order of stages require owner
+approval. Only final approval emits obligations.
+end note
+@enduml

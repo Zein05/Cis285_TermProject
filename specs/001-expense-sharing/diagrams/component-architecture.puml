@@ -1,0 +1,74 @@
+@startuml
+title SplitSmart component architecture — MVP proposal and full-product target
+left to right direction
+skinparam componentStyle rectangle
+
+actor "MVP user" as MvpUser
+actor "Full-product user" as ProductUser
+
+package "MVP proposal — local Swing, not implemented" {
+  component "Swing presentation" as Swing
+  component "Application use cases" as MvpApp
+  component "Domain\nMoney, split, approval,\nledger, payment, reporting" as MvpDomain
+  interface "Repository / transaction ports" as MvpRepoPort
+  interface "Identity / authorization port" as MvpAuthPort
+  interface "Receipt storage port" as MvpReceiptPort
+  interface "Notification port" as MvpNotifyPort
+  component "Persistence adapter\n(engine open)" as MvpPersistence
+  component "Identity adapter\n(policy open)" as MvpIdentity
+  component "Private receipt adapter\n(limits/storage open)" as MvpReceipt
+  component "In-app inbox adapter\n(channel open)" as MvpNotify
+  database "Local relational store\n(SQLite / H2 open)" as LocalDb
+
+  MvpUser --> Swing
+  Swing --> MvpApp
+  MvpApp --> MvpDomain
+  MvpApp --> MvpRepoPort
+  MvpApp --> MvpAuthPort
+  MvpApp --> MvpReceiptPort
+  MvpApp --> MvpNotifyPort
+  MvpPersistence ..|> MvpRepoPort
+  MvpIdentity ..|> MvpAuthPort
+  MvpReceipt ..|> MvpReceiptPort
+  MvpNotify ..|> MvpNotifyPort
+  MvpPersistence --> LocalDb
+}
+
+package "Full product target — required, future/unimplemented" {
+  component "Web client (primary)" as Web
+  component "Android client" as Android
+  component "iOS client" as IOS
+  component "Authenticated service/API\n(protocol and identity open)" as API
+  component "Application use cases" as ServiceApp
+  component "Domain\ncanonical financial rules" as ServiceDomain
+  component "Authorization boundary" as AuthZ
+  interface "Repository / transaction ports" as ServiceRepoPort
+  component "Shared persistence adapter" as SharedAdapter
+  database "Shared relational database\n(SQLite / H2 / PostgreSQL alternatives)" as SharedDb
+  component "Notification/outbox adapter\n(channels/retry open)" as Delivery
+  component "Private receipt/object storage\n(technology/retention open)" as ObjectStore
+
+  ProductUser --> Web
+  ProductUser --> Android
+  ProductUser --> IOS
+  Web --> API
+  Android --> API
+  IOS --> API
+  API --> AuthZ
+  AuthZ --> ServiceApp
+  ServiceApp --> ServiceDomain
+  ServiceApp --> ServiceRepoPort
+  SharedAdapter ..|> ServiceRepoPort
+  SharedAdapter --> SharedDb
+  ServiceApp --> Delivery
+  ServiceApp --> ObjectStore
+}
+
+note bottom of MvpDomain
+Rules do not depend on Swing, SQL, files, HTTP, or delivery providers.
+end note
+note bottom of ServiceDomain
+Server is authoritative; clients do not post ledger facts or independently
+determine accepted shares/balances. Pairwise debts are not redirected.
+end note
+@enduml

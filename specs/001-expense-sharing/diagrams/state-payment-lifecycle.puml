@@ -1,0 +1,26 @@
+@startuml
+title SplitSmart payment request and committed payment lifecycle
+
+[*] --> Received : validly shaped request
+Received --> Failed : authorization / validation / policy failure
+Received --> Posted : pair valid; transaction commits
+Posted --> Reversed : approved compensating action [policy open]
+Failed --> [*]
+Posted --> [*]
+Reversed --> [*]
+
+note right of Posted
+PostedPayment is a committed financial fact and has exactly one LedgerEntry.
+The payment and posting commit atomically. A duplicate request resolves to the
+same posted result and does not create another payment or posting.
+end note
+note right of Failed
+Failed request is not a Payment financial fact and has no ledger entry.
+Retry/idempotency retention and semantic duplicate rules require approval.
+end note
+note bottom
+Pending external transfer/settlement is not currently defined. If introduced,
+model it as a non-posted PaymentAttempt with no LedgerEntry until committed.
+Reversal semantics remain open.
+end note
+@enduml

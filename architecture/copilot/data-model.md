@@ -1,5 +1,8 @@
 # Domain and Persistence Model
 
+> **Historical reference only — superseded.** Use the canonical data model at
+> [specs/001-expense-sharing/data-model.md](../../specs/001-expense-sharing/data-model.md).
+
 ## Design and persistence status
 
 All entities and constraints here are proposed from the approved specification.
@@ -161,4 +164,3 @@ Financial history should be append-only; corrections require an explicit,
 auditable compensating event policy. For local receipt files, write to a temporary
 file then atomically move and persist metadata; reconcile orphan files after
 failure. A future object store requires the same authorization and cleanup policy.
-

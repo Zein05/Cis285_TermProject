@@ -1,5 +1,12 @@
 # Architecture Proposal Review: Spec Kit vs. Copilot
 
+> **Historical review input — superseded by the reconciled design baseline.**
+> This review is retained for its findings and is not an approval record or a
+> competing source of truth. See the canonical
+> [requirements](../specs/001-expense-sharing/spec.md), [architecture plan](../specs/001-expense-sharing/plan.md),
+> [data model](../specs/001-expense-sharing/data-model.md), and
+> [decision register](../specs/001-expense-sharing/decision-register.md).
+
 **Project:** CIS285 Term Project — Expense Sharing  
 **Branch reviewed:** docs/architecture-prompt-drafts  
 **Review scope:** Independent architecture, requirements, and design-assurance review. This report reviews proposal artifacts only; it does not claim implementation or test verification.

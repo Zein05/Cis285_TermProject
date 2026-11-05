@@ -1,5 +1,8 @@
 # Architecture Recommendation
 
+> **Historical reference only — superseded.** Use the canonical architecture
+> plan at [specs/001-expense-sharing/plan.md](../../specs/001-expense-sharing/plan.md).
+
 ## Executive recommendation
 
 Use a **layered, single-process Java 21 desktop MVP** with Swing at the edge,
@@ -201,4 +204,3 @@ ownership need separate approval. This path is an architecture proposal only.
 
 See [test-strategy.md](./test-strategy.md) and
 [traceability-matrix.md](./traceability-matrix.md) for requirement-level controls.
-
