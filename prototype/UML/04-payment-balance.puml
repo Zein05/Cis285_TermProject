@@ -1,0 +1,47 @@
+@startuml SplitSmartPaymentBalance
+!theme plain
+skinparam shadowing false
+skinparam activity {
+  BackgroundColor #F8FAF7
+  BorderColor #78927D
+  DiamondBackgroundColor #F4F7F2
+  DiamondBorderColor #78927D
+  ArrowColor #54705F
+}
+title SplitSmart Prototype — Record Payment and Recalculate Pairwise Debt
+
+|Demo user|
+start
+:Choose group, payer, payee,
+amount, date, optional note;
+|Next.js server API|
+:Parse amount as integer cents;
+if (Positive amount, distinct users,
+and required fields?) then (yes)
+else (no)
+  :Return validation message;
+  |Demo user|
+  :Correct form;
+  stop
+endif
+:Load group members, expenses,
+and payments;
+:Ignore PENDING and REJECTED expenses;
+:For each approved share, add
+participant → expense payer obligation;
+:Subtract recorded payments
+from the same user pair in this group;
+if (Payment <= current debt?) then (yes)
+  :Create Payment ledger row;
+  |SQLite|
+  :Persist payment;
+  |Next.js server API|
+  :Recalculate group-scoped
+  pairwise balance;
+  |Browser|
+  :Refresh dashboard and report;
+else (no)
+  :Reject overpayment with message;
+endif
+stop
+@enduml

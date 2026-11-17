@@ -1,0 +1,89 @@
+@startuml SplitSmartDataModel
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam class {
+  BackgroundColor #F8FAF7
+  BorderColor #78927D
+  ArrowColor #54705F
+}
+title SplitSmart Prototype — Prisma Data Model
+
+class User {
+  id: String <<PK>>
+  name: String
+  email: String <<unique>>
+  initials: String
+  color: String
+  createdAt: DateTime
+}
+
+class Group {
+  id: String <<PK>>
+  name: String
+  emoji: String
+  createdAt: DateTime
+}
+
+class GroupMember {
+  id: String <<PK>>
+  groupId: String <<FK>>
+  userId: String <<FK>>
+  role: String
+  {unique} groupId + userId
+}
+
+class Expense {
+  id: String <<PK>>
+  groupId: String <<FK>>
+  payerId: String <<FK>>
+  description: String
+  amountCents: Int
+  spentAt: DateTime
+  splitType: String
+  status: String
+  createdAt: DateTime
+}
+
+class ExpenseShare {
+  id: String <<PK>>
+  expenseId: String <<FK>>
+  userId: String <<FK>>
+  amountCents: Int
+  percentage: Int?
+  {unique} expenseId + userId
+}
+
+class Payment {
+  id: String <<PK>>
+  groupId: String <<FK>>
+  payerId: String <<FK>>
+  payeeId: String <<FK>>
+  amountCents: Int
+  paidAt: DateTime
+  note: String?
+  createdAt: DateTime
+}
+
+User "1" -- "0..*" GroupMember : membership
+Group "1" -- "0..*" GroupMember : contains
+Group "1" -- "0..*" Expense : records
+User "1" -- "0..*" Expense : paid by
+Expense "1" *-- "1..*" ExpenseShare : allocates
+User "1" -- "0..*" ExpenseShare : owes share
+Group "1" -- "0..*" Payment : records
+User "1" -- "0..*" Payment : payer
+User "1" -- "0..*" Payment : payee
+
+note bottom of Expense
+  amountCents is an integer.
+  Only APPROVED expenses affect balances.
+  PENDING and REJECTED are excluded.
+end note
+note bottom of Payment
+  Payment is a local ledger entry.
+  Balance calculations remain scoped
+  to each group and each user pair.
+end note
+@enduml

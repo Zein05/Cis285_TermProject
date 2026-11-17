@@ -1,0 +1,58 @@
+@startuml SplitSmartExpenseReview
+!theme plain
+skinparam shadowing false
+skinparam activity {
+  BackgroundColor #F8FAF7
+  BorderColor #78927D
+  DiamondBackgroundColor #F4F7F2
+  DiamondBorderColor #78927D
+  ArrowColor #54705F
+}
+title SplitSmart Prototype — Submit and Review an Expense
+
+|Demo user|
+start
+:Open Add expense form;
+:Enter description, amount, date,
+group, payer, participants, split;
+|Next.js server API|
+:Parse amount as integer cents;
+if (Valid amount and required fields?) then (yes)
+else (no)
+  :Return validation message;
+  |Demo user|
+  :Correct form;
+  stop
+endif
+:Check payer is selected participant;
+:Check participants belong to group;
+if (Percentage split?) then (yes)
+  :Require whole percentages
+  totaling 100%;
+else (equal)
+  :Assign equal weights;
+endif
+:Allocate integer-cent shares;
+:Store Expense with status PENDING
+and create ExpenseShare rows;
+|Demo user|
+:Expense appears in review queue;
+:Choose approve or decline;
+|Next.js server API|
+if (Decision is approve?) then (yes)
+  :Change PENDING to APPROVED;
+  note right
+    Approved expense now contributes
+    to pairwise group balances.
+  end note
+else (no)
+  :Change PENDING to REJECTED;
+  note right
+    Rejected expense stays out
+    of balance calculations.
+  end note
+endif
+|SQLite|
+:Persist expense status and shares;
+stop
+@enduml

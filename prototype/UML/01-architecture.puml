@@ -1,0 +1,60 @@
+@startuml SplitSmartArchitecture
+!theme plain
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam ArrowColor #54705F
+skinparam ComponentBorderColor #78927D
+skinparam ComponentBackgroundColor #F7FAF6
+skinparam PackageBorderColor #B8C9BA
+skinparam PackageBackgroundColor #FFFFFF
+
+title SplitSmart Prototype — Runtime Architecture
+
+actor "Demo user" as User
+
+package "Browser" {
+  component "Next.js page\nReact client UI" as UI
+}
+
+package "Next.js server" {
+  component "GET /api/data" as DataAPI
+  component "POST /api/expenses" as ExpenseAPI
+  component "POST /api/expenses/{id}/review" as ReviewAPI
+  component "POST /api/payments" as PaymentAPI
+  component "Prisma Client\nserver-only" as Prisma
+  component "Pairwise balance\ncalculation" as Balances
+}
+
+database "SQLite\nprisma/dev.db" as DB
+
+package "Local setup tools" {
+  component "prisma/setup.mjs\nadditive SQL migration" as Setup
+  component "prisma/seed.mjs\nPrisma upserts" as Seed
+}
+
+User --> UI : use dashboard, groups, reports
+UI --> DataAPI : load workspace
+UI --> ExpenseAPI : submit expense
+UI --> ReviewAPI : approve / reject
+UI --> PaymentAPI : record payment
+DataAPI --> Prisma
+ExpenseAPI --> Prisma
+ReviewAPI --> Prisma
+PaymentAPI --> Prisma
+DataAPI --> Balances : approved expenses + payments
+PaymentAPI --> Balances : validate current debt
+Prisma --> DB : query / persist
+Setup --> DB : apply schema SQL
+Seed --> Prisma : insert demo rows
+
+note right of UI
+  No Prisma client or database URL
+  is sent to browser code.
+end note
+note bottom of ReviewAPI
+  Prototype behavior: no real login,
+  reviewer identity, or permissions.
+end note
+@enduml

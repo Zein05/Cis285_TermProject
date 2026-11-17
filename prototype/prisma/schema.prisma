@@ -12,3 +12,77 @@ model EnvironmentCheck {
   message   String
   createdAt DateTime @default(now())
 }
+
+model User {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  initials    String
+  color       String   @default("sage")
+  createdAt   DateTime @default(now())
+  memberships GroupMember[]
+  paidExpenses Expense[] @relation("ExpensePayer")
+  shares      ExpenseShare[]
+  sentPayments Payment[] @relation("PaymentPayer")
+  receivedPayments Payment[] @relation("PaymentPayee")
+}
+
+model Group {
+  id        String   @id @default(cuid())
+  name      String
+  emoji     String   @default("🏡")
+  createdAt DateTime @default(now())
+  members   GroupMember[]
+  expenses  Expense[]
+  payments  Payment[]
+}
+
+model GroupMember {
+  id      String @id @default(cuid())
+  groupId String
+  userId  String
+  role    String @default("member")
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([groupId, userId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  groupId     String
+  payerId     String
+  description String
+  amountCents Int
+  spentAt     DateTime
+  splitType   String
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  payer       User     @relation("ExpensePayer", fields: [payerId], references: [id])
+  shares      ExpenseShare[]
+}
+
+model ExpenseShare {
+  id             String @id @default(cuid())
+  expenseId      String
+  userId         String
+  amountCents    Int
+  percentage     Int?
+  expense        Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user           User @relation(fields: [userId], references: [id])
+  @@unique([expenseId, userId])
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  groupId     String
+  payerId     String
+  payeeId     String
+  amountCents Int
+  paidAt      DateTime
+  note        String?
+  createdAt   DateTime @default(now())
+  group       Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  payer       User @relation("PaymentPayer", fields: [payerId], references: [id])
+  payee       User @relation("PaymentPayee", fields: [payeeId], references: [id])
+}

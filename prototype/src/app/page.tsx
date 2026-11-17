@@ -1,103 +1,146 @@
-import Image from "next/image";
+"use client";
+
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+
+type Person = { id: string; name: string; email: string; initials: string; color: string };
+type Group = { id: string; name: string; emoji: string; members: { user: Person; role: string }[] };
+type Expense = { id: string; groupId: string; description: string; amountCents: number; spentAt: string; status: string; splitType: string; payer: Person; group: Group; shares: { user: Person; amountCents: number; percentage?: number | null }[] };
+type Payment = { id: string; groupId: string; amountCents: number; paidAt: string; payer: Person; payee: Person; group: Group; note?: string | null };
+type Debt = { groupId: string; payerId: string; payeeId: string; amountCents: number };
+type Workspace = { users: Person[]; groups: Group[]; expenses: Expense[]; payments: Payment[]; debts: Debt[] };
+
+const money = (cents: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+const shortDate = (date: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(date));
+const today = new Date().toISOString().slice(0, 10);
+
+function Icon({ name, size = 19 }: { name: string; size?: number }) {
+  const shapes: Record<string, React.ReactNode> = {
+    grid: <><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></>,
+    users: <><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></>,
+    chart: <><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-5 5"/></>,
+    plus: <><path d="M12 5v14M5 12h14"/></>,
+    arrow: <><path d="M7 7h10v10"/><path d="M7 17 17 7"/></>,
+    search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,
+    bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></>,
+    down: <path d="m7 10 5 5 5-5"/>,
+    close: <path d="m18 6-12 12M6 6l12 12"/>,
+    check: <path d="m5 12 4 4L19 6"/>,
+    wallet: <><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 9h18M16 14h.01"/></>,
+    calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></>,
+    more: <><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></>,
+  };
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{shapes[name] ?? shapes.grid}</svg>;
+}
+function Avatar({ person, size = "normal" }: { person: Person; size?: "normal" | "small" }) { return <span className={`avatar avatar-${person.color} ${size === "small" ? "avatar-small" : ""}`} title={person.name}>{person.initials}</span>; }
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [section, setSection] = useState("Overview");
+  const [activeGroup, setActiveGroup] = useState("all");
+  const [modal, setModal] = useState<"expense" | "payment" | null>(null);
+  const [toast, setToast] = useState("");
+  const [busy, setBusy] = useState("");
+  const [range, setRange] = useState("month");
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+  const refresh = useCallback(async () => {
+    setLoading(true); setLoadError("");
+    try { const response = await fetch("/api/data", { cache: "no-store" }); const payload = await response.json(); if (!response.ok) throw new Error(payload.error); setWorkspace(payload); }
+    catch (error) { setLoadError(error instanceof Error ? error.message : "Could not load your workspace."); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(""), 3200); return () => clearTimeout(timer); }, [toast]);
+
+  const currentUser = workspace?.users.find((person) => person.id === "u_alex") ?? workspace?.users[0];
+  const groups = workspace?.groups ?? [];
+  const selectedGroup = groups.find((group) => group.id === activeGroup);
+  const filteredExpenses = (workspace?.expenses ?? []).filter((expense) => activeGroup === "all" || expense.groupId === activeGroup);
+  const filteredPayments = (workspace?.payments ?? []).filter((payment) => activeGroup === "all" || payment.groupId === activeGroup);
+  const debts = (workspace?.debts ?? []).filter((debt) => activeGroup === "all" || debt.groupId === activeGroup);
+  const owes = debts.filter((debt) => debt.payerId === currentUser?.id).reduce((sum, debt) => sum + debt.amountCents, 0);
+  const owed = debts.filter((debt) => debt.payeeId === currentUser?.id).reduce((sum, debt) => sum + debt.amountCents, 0);
+  const pending = filteredExpenses.filter((expense) => expense.status === "PENDING");
+  const recent = [...filteredExpenses.filter((expense) => expense.status !== "REJECTED").map((item) => ({ ...item, kind: "expense" as const })), ...filteredPayments.map((item) => ({ ...item, kind: "payment" as const }))].sort((a, b) => new Date(b.kind === "expense" ? b.spentAt : b.paidAt).getTime() - new Date(a.kind === "expense" ? a.spentAt : a.paidAt).getTime()).slice(0, 6);
+  const reportRows = useMemo(() => {
+    const cutoff = new Date(); cutoff.setDate(1); cutoff.setHours(0, 0, 0, 0);
+    return [...filteredExpenses.filter((expense) => expense.status === "APPROVED" && (range === "all" || new Date(expense.spentAt) >= cutoff)).map((item) => ({ id: item.id, title: item.description, amountCents: item.amountCents, date: item.spentAt, type: "Expense", group: item.group.name })), ...filteredPayments.filter((payment) => range === "all" || new Date(payment.paidAt) >= cutoff).map((item) => ({ id: item.id, title: `${item.payer.name.split(" ")[0]} → ${item.payee.name.split(" ")[0]}`, amountCents: item.amountCents, date: item.paidAt, type: "Payment", group: item.group.name }))].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [filteredExpenses, filteredPayments, range]);
+
+  async function reviewExpense(id: string, decision: "APPROVED" | "REJECTED") {
+    setBusy(id);
+    try { const response = await fetch(`/api/expenses/${id}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error); setToast(decision === "APPROVED" ? "Expense approved and added to balances." : "Expense rejected."); await refresh(); }
+    catch (error) { setToast(error instanceof Error ? error.message : "Review could not be saved."); }
+    finally { setBusy(""); }
+  }
+
+  async function submitForm(event: FormEvent<HTMLFormElement>, type: "expense" | "payment") {
+    event.preventDefault(); const form = new FormData(event.currentTarget); setBusy(type);
+    const payload = Object.fromEntries(form.entries());
+    if (type === "expense") {
+      const ids = form.getAll("participants").map(String); const percentages = Object.fromEntries(ids.map((id) => [id, Number(form.get(`pct-${id}`) || 0)]));
+      Object.assign(payload, { participantIds: ids, percentages });
+    }
+    try { const response = await fetch(type === "expense" ? "/api/expenses" : "/api/payments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) throw new Error(result.error); setModal(null); setToast(type === "expense" ? "Expense sent for approval." : "Payment recorded."); await refresh(); }
+    catch (error) { setToast(error instanceof Error ? error.message : "Could not save this item."); }
+    finally { setBusy(""); }
+  }
+
+  const nav = ["Overview", "Groups", "Reports"];
+  return <main className="app-shell">
+    <aside className="sidebar">
+      <a className="brand" href="#overview" onClick={() => setSection("Overview")}><span className="brand-mark"><span></span><span></span><span></span><span></span></span><span>splitsmart<span className="brand-period">.</span></span></a>
+      <div className="workspace-label">WORKSPACE <span>⌄</span></div>
+      <div className="workspace-switch"><span className="workspace-icon">M</span><span><strong>My workspace</strong><small>Personal account</small></span><Icon name="down" size={15}/></div>
+      <div className="side-label">MENU</div>
+      <nav className="main-nav">{nav.map((item) => <button key={item} className={`nav-item ${section === item ? "active" : ""}`} onClick={() => setSection(item)}><Icon name={item === "Overview" ? "grid" : item === "Groups" ? "users" : "chart"}/>{item}{item === "Groups" && <span className="nav-count">{groups.length}</span>}</button>)}</nav>
+      <div className="side-label groups-heading">YOUR GROUPS <button onClick={() => { setSection("Groups"); setActiveGroup("all"); }} aria-label="View groups">+</button></div>
+      <div className="group-nav">{groups.map((group) => <button key={group.id} className={`group-nav-item ${activeGroup === group.id ? "selected" : ""}`} onClick={() => { setActiveGroup(group.id); setSection("Groups"); }}><span className="group-emoji">{group.emoji}</span>{group.name}<span className="group-dot"/></button>)}</div>
+      <div className="sidebar-bottom"><div className="demo-note"><span className="demo-note-icon">✦</span><strong>Demo workspace</strong><p>Authentication and payments are simulated for this prototype.</p><button onClick={() => setToast("This demo uses Alex Morgan's workspace.")}>About this demo <span>↗</span></button></div><button className="profile-button"><Avatar person={currentUser ?? { id: "", name: "Alex Morgan", email: "", initials: "AM", color: "sage" }}/><span><strong>{currentUser?.name ?? "Alex Morgan"}</strong><small>Demo account</small></span><Icon name="more"/></button></div>
+    </aside>
+
+    <section className="main-area">
+      <header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{section === "Groups" && selectedGroup ? selectedGroup.name : section}</strong></div><div className="top-actions"><span className="demo-pill"><i/> Demo mode</span><button className="icon-button" onClick={() => { setSection("Overview"); document.getElementById("approvals")?.scrollIntoView({ behavior: "smooth" }); }} aria-label="Pending notifications"><Icon name="bell"/><span className="notification-dot"/></button><button className="top-avatar" aria-label="Current demo account">{currentUser?.initials ?? "AM"}</button></div></header>
+      <div className="page-content">
+        {loadError ? <div className="error-panel"><span>We couldn’t open this workspace</span><p>{loadError}</p><button className="button primary" onClick={() => void refresh()}>Try again</button><p className="setup-hint">In <code>prototype/</code>, run <code>npm run db:setup</code> and <code>npm run db:seed</code>.</p></div> : loading && !workspace ? <div className="loading-state"><span className="spinner"/> Loading your workspace…</div> : !workspace ? null : <>
+          <div className="welcome-row"><div><div className="eyebrow">{new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(new Date()).toUpperCase()}</div><h1>{section === "Overview" ? <>Good morning, {currentUser?.name.split(" ")[0]} <span className="wave">✳</span></> : section === "Groups" ? selectedGroup?.name ?? "Your groups" : "Your reports"}</h1><p className="page-subtitle">{section === "Overview" ? "Here’s what’s happening with your shared expenses." : section === "Groups" ? "Keep your people, plans, and spending in sync." : "A clear picture of where your money is going."}</p></div><div className="header-actions">{section === "Overview" && <button className="button secondary" onClick={() => setModal("payment")}><Icon name="arrow" size={16}/> Record payment</button>}<button className="button primary" onClick={() => setModal("expense")}><Icon name="plus" size={17}/> Add expense</button></div></div>
+          <div className="filter-row"><div className="group-filter"><button className={activeGroup === "all" ? "filter-active" : ""} onClick={() => setActiveGroup("all")}>All groups</button>{groups.map((group) => <button key={group.id} className={activeGroup === group.id ? "filter-active" : ""} onClick={() => setActiveGroup(group.id)}>{group.emoji} {group.name}</button>)}</div><button className="date-filter" onClick={() => setSection("Reports")}><Icon name="calendar" size={15}/> This month <Icon name="down" size={14}/></button></div>
+
+          {section === "Overview" && <>
+            <section className="stat-grid">
+              <article className="stat-card balance-card"><div className="stat-top"><span className="stat-icon mint"><Icon name="wallet"/></span><span className="stat-trend positive">↗ On track</span></div><div className="stat-label">You are owed</div><div className="stat-value">{money(owed)}</div><div className="stat-foot">Across {debts.filter((debt) => debt.payeeId === currentUser?.id).length} balances</div><div className="stat-decoration decor-one"/><div className="stat-decoration decor-two"/></article>
+              <article className="stat-card"><div className="stat-top"><span className="stat-icon peach"><Icon name="arrow"/></span><span className="stat-trend neutral">↘ To settle</span></div><div className="stat-label">You owe</div><div className="stat-value">{money(owes)}</div><div className="stat-foot">Across {debts.filter((debt) => debt.payerId === currentUser?.id).length} balances</div></article>
+              <article className="stat-card"><div className="stat-top"><span className="stat-icon lavender">⌁</span><span className="stat-trend neutral">This month</span></div><div className="stat-label">Shared spending</div><div className="stat-value">{money(filteredExpenses.filter((expense) => expense.status === "APPROVED").reduce((sum, expense) => sum + expense.amountCents, 0))}</div><div className="stat-foot">{filteredExpenses.filter((expense) => expense.status === "APPROVED").length} approved expenses</div></article>
+              <article className="stat-card"><div className="stat-top"><span className="stat-icon butter"><Icon name="bell"/></span>{pending.length > 0 && <span className="pending-mini">Needs you</span>}</div><div className="stat-label">Pending approval</div><div className="stat-value">{pending.length}<span className="stat-unit"> expense{pending.length === 1 ? "" : "s"}</span></div><div className="stat-foot">{pending.length ? `${money(pending.reduce((sum, expense) => sum + expense.amountCents, 0))} waiting for review` : "You’re all caught up"}</div></article>
+            </section>
+            <div className="content-grid"><section className="panel activity-panel"><div className="panel-heading"><div><h2>Recent activity</h2><p>Your group’s latest updates</p></div><button className="text-button" onClick={() => setSection("Reports")}>View report <span>↗</span></button></div>
+              {recent.length === 0 ? <div className="empty-state"><span>✦</span><strong>No activity yet</strong><p>Add an expense to get your group started.</p><button className="button primary" onClick={() => setModal("expense")}>Add an expense</button></div> : <div className="activity-list">{recent.map((item) => item.kind === "expense" ? <div className="activity-row" key={`e-${item.id}`}><div className={`activity-symbol ${item.status === "PENDING" ? "symbol-pending" : "symbol-expense"}`}>{item.status === "PENDING" ? "◷" : item.group.emoji}</div><div className="activity-main"><strong>{item.description}</strong><span>{item.payer.name.split(" ")[0]} paid · {item.group.name}</span></div><div className="activity-amount"><strong>{money(item.amountCents)}</strong><span>{shortDate(item.spentAt)}</span></div></div> : <div className="activity-row" key={`p-${item.id}`}><div className="activity-symbol symbol-payment">↗</div><div className="activity-main"><strong>{item.payer.name.split(" ")[0]} paid {item.payee.name.split(" ")[0]}</strong><span>{item.group.name} · Payment</span></div><div className="activity-amount"><strong className="paid-amount">−{money(item.amountCents)}</strong><span>{shortDate(item.paidAt)}</span></div></div>)}</div>}
+            </section><section className="panel balances-panel"><div className="panel-heading"><div><h2>Balances</h2><p>Who owes whom</p></div><button className="subtle-more" aria-label="More balance options"><Icon name="more"/></button></div>{debts.length === 0 ? <div className="empty-compact">Everyone is settled up. Nice.</div> : <div className="balance-list">{debts.slice(0, 5).map((debt, index) => { const payer = workspace.users.find((user) => user.id === debt.payerId)!; const payee = workspace.users.find((user) => user.id === debt.payeeId)!; return <div className="balance-row" key={`${debt.payerId}-${debt.payeeId}-${index}`}><div className="balance-people"><Avatar person={payer} size="small"/><span>{payer.id === currentUser?.id ? "You" : payer.name.split(" ")[0]} <span className="owes-word">owe</span></span><Avatar person={payee} size="small"/><span>{payee.id === currentUser?.id ? "you" : payee.name.split(" ")[0]}</span></div><strong>{money(debt.amountCents)}</strong></div>; })}</div>}<button className="settle-button" onClick={() => setModal("payment")}>Settle a balance <span>→</span></button></section></div>
+            <section className="panel approvals-panel" id="approvals"><div className="panel-heading"><div><h2>Needs your review <span className="heading-count">{pending.length}</span></h2><p>Expenses are added to balances after approval</p></div><span className="review-label"><i/> REVIEW QUEUE</span></div>{pending.length === 0 ? <div className="empty-compact approval-empty">You’re all caught up — no expenses to review.</div> : pending.map((expense) => <div className="approval-row" key={expense.id}><div className="approval-icon">{expense.group.emoji}</div><div className="approval-description"><strong>{expense.description}</strong><span>Added by {expense.payer.name} · {expense.group.name} · {shortDate(expense.spentAt)}</span></div><strong className="approval-amount">{money(expense.amountCents)}</strong><div className="approval-people">{expense.shares.slice(0, 3).map((share) => <Avatar key={share.user.id} person={share.user} size="small"/>)}<span>{expense.shares.length} people</span></div><div className="approval-actions"><button className="approve-button" disabled={busy === expense.id} onClick={() => void reviewExpense(expense.id, "APPROVED")}><Icon name="check" size={15}/> Approve</button><button className="reject-button" disabled={busy === expense.id} onClick={() => void reviewExpense(expense.id, "REJECTED")}>Decline</button></div></div>)}</section>
+            <div className="bottom-grid"><section className="panel groups-panel"><div className="panel-heading"><div><h2>Your groups</h2><p>Shared spaces you’re part of</p></div><button className="text-button" onClick={() => setSection("Groups")}>See all <span>↗</span></button></div><div className="group-cards">{groups.map((group, i) => <button className={`group-card group-card-${i}`} key={group.id} onClick={() => { setActiveGroup(group.id); setSection("Groups"); }}><span className="group-card-emoji">{group.emoji}</span><span className="group-card-name">{group.name}</span><span className="group-card-foot">{group.members.length} members <span>{money(filteredExpenses.filter((expense) => expense.groupId === group.id && expense.status === "APPROVED").reduce((sum, expense) => sum + expense.amountCents, 0))} shared</span></span><span className="group-avatars">{group.members.slice(0, 4).map((member) => <Avatar key={member.user.id} person={member.user} size="small"/>)}</span></button>)}</div></section><section className="tip-card"><span className="tip-sparkle">✳</span><div className="eyebrow">A LITTLE TIP</div><h3>Good groups<br/>settle up often.</h3><p>Recording payments as you go keeps everyone’s balance clear and current.</p><button onClick={() => setModal("payment")}>Record a payment <span>→</span></button><div className="tip-orbit orbit-a"/><div className="tip-orbit orbit-b"/></section></div>
+          </>}
+
+          {section === "Groups" && <section className="panel group-detail"><div className="panel-heading"><div><h2>{selectedGroup ? `${selectedGroup.emoji} ${selectedGroup.name}` : "All your groups"}</h2><p>{selectedGroup ? `${selectedGroup.members.length} members · shared expenses and pairwise balances` : "Choose a group to see its people, expenses, and balances."}</p></div>{selectedGroup && <button className="button primary" onClick={() => setModal("expense")}><Icon name="plus" size={17}/> Add expense</button>}</div>{!selectedGroup ? <div className="large-group-grid">{groups.map((group) => <button className="large-group-card" key={group.id} onClick={() => setActiveGroup(group.id)}><span>{group.emoji}</span><strong>{group.name}</strong><small>{group.members.length} members · {filteredExpenses.filter((expense) => expense.groupId === group.id).length} expenses</small><span className="group-card-members">{group.members.map((member) => <Avatar key={member.user.id} person={member.user} size="small"/>)}</span></button>)}</div> : <><h3 className="subheading">Members</h3><div className="member-list">{selectedGroup.members.map((member) => <div className="member-row" key={member.user.id}><Avatar person={member.user}/><strong>{member.user.id === currentUser?.id ? `${member.user.name} (you)` : member.user.name}</strong><span>{member.role === "manager" ? "Group manager" : "Member"}</span></div>)}</div><h3 className="subheading">Expenses</h3><div className="table-wrap"><table><thead><tr><th>DESCRIPTION</th><th>PAID BY</th><th>DATE</th><th>SPLIT</th><th>STATUS</th><th className="align-right">AMOUNT</th></tr></thead><tbody>{filteredExpenses.length ? filteredExpenses.map((expense) => <tr key={expense.id}><td><strong>{expense.description}</strong></td><td>{expense.payer.name.split(" ")[0]}</td><td>{shortDate(expense.spentAt)}</td><td>{expense.splitType === "PERCENTAGE" ? "Percentage" : "Equal"}</td><td><span className={`status status-${expense.status.toLowerCase()}`}>{expense.status.toLowerCase()}</span></td><td className="align-right">{money(expense.amountCents)}</td></tr>) : <tr><td colSpan={6}>No expenses in this group yet.</td></tr>}</tbody></table></div><h3 className="subheading">Outstanding balances</h3>{debts.length ? debts.map((debt, i) => <div className="balance-row detail-balance" key={i}><div className="balance-people"><Avatar person={workspace.users.find((user) => user.id === debt.payerId)!} size="small"/><span>{workspace.users.find((user) => user.id === debt.payerId)?.name.split(" ")[0]} <span className="owes-word">owes</span></span><Avatar person={workspace.users.find((user) => user.id === debt.payeeId)!} size="small"/><span>{workspace.users.find((user) => user.id === debt.payeeId)?.name.split(" ")[0]}</span></div><strong>{money(debt.amountCents)}</strong></div>) : <div className="empty-compact">No outstanding balances in this group.</div>}</>}</section>}
+
+          {section === "Reports" && <><section className="report-summary"><div><span>Approved expenses</span><strong>{money(reportRows.filter((row) => row.type === "Expense").reduce((sum, row) => sum + row.amountCents, 0))}</strong></div><div><span>Payments recorded</span><strong>{money(reportRows.filter((row) => row.type === "Payment").reduce((sum, row) => sum + row.amountCents, 0))}</strong></div><div><span>Records in period</span><strong>{reportRows.length}</strong></div><label>Period<select value={range} onChange={(event) => setRange(event.target.value)}><option value="month">This month</option><option value="all">All time</option></select></label></section><section className="panel report-panel"><div className="panel-heading"><div><h2>Expense & payment report</h2><p>{range === "month" ? "Showing records from the start of this month" : "Showing all recorded history"}</p></div><button className="date-filter" onClick={() => setRange(range === "month" ? "all" : "month")}><Icon name="calendar" size={15}/>{range === "month" ? "This month" : "All time"}<Icon name="down" size={14}/></button></div><div className="table-wrap"><table><thead><tr><th>DESCRIPTION</th><th>GROUP</th><th>DATE</th><th>TYPE</th><th className="align-right">AMOUNT</th></tr></thead><tbody>{reportRows.length ? reportRows.map((row) => <tr key={`${row.type}-${row.id}`}><td><strong>{row.title}</strong></td><td>{row.group}</td><td>{shortDate(row.date)}</td><td><span className={`type-label ${row.type === "Payment" ? "type-payment" : ""}`}>{row.type}</span></td><td className="align-right">{money(row.amountCents)}</td></tr>) : <tr><td colSpan={5} className="empty-cell">No records match this date filter.</td></tr>}</tbody></table></div></section><p className="report-disclaimer">Reports show demo workspace data. Pending and rejected expenses are excluded from expense totals.</p></>}
+          <footer className="page-footer">Made for sharing the little things <span>✳</span><span className="footer-right">SplitSmart prototype · Data stored locally in SQLite</span></footer>
+        </>}
+      </div>
+    </section>
+
+    {modal && workspace && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setModal(null); }}><section className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><div className="eyebrow">{modal === "expense" ? "ADD TO THE GROUP" : "CLOSE THE LOOP"}</div><h2 id="modal-title">{modal === "expense" ? "Add an expense" : "Record a payment"}</h2><p>{modal === "expense" ? "A quick note now makes settling up easy later." : "Log a payment between two group members."}</p></div><button className="icon-button modal-close" onClick={() => setModal(null)} aria-label="Close"><Icon name="close"/></button></div><form onSubmit={(event) => void submitForm(event, modal)}>
+      {modal === "expense" ? <><label className="field-label">Description<input name="description" required maxLength={80} placeholder="e.g. Dinner at Maru"/></label><div className="field-two"><label className="field-label">Amount<input name="amount" type="number" required min="0.01" step="0.01" placeholder="0.00"/></label><label className="field-label">Date<input name="date" type="date" required defaultValue={today}/></label></div><label className="field-label">Group<select name="groupId" required defaultValue={selectedGroup?.id ?? groups[0]?.id} onChange={(event) => window.dispatchEvent(new CustomEvent("splitsmart-group", { detail: event.target.value }))}>{groups.map((group) => <option key={group.id} value={group.id}>{group.emoji} {group.name}</option>)}</select></label><label className="field-label">Paid by<select name="payerId" required defaultValue={currentUser?.id}>{workspace.users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select></label><SplitParticipants groupId={selectedGroup?.id ?? groups[0]?.id ?? ""} groups={groups} users={workspace.users}/><p className="form-help">This expense will be sent for group review before it changes balances.</p></> : <><label className="field-label">Group<select name="groupId" required defaultValue={selectedGroup?.id ?? groups[0]?.id}>{groups.map((group) => <option key={group.id} value={group.id}>{group.emoji} {group.name}</option>)}</select></label><div className="field-two"><label className="field-label">Paid by<select name="payerId" required defaultValue="u_alex">{workspace.users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select></label><label className="field-label">Paid to<select name="payeeId" required defaultValue="u_jamie">{workspace.users.filter((user) => user.id !== currentUser?.id).map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select></label></div><div className="field-two"><label className="field-label">Amount<input name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00"/></label><label className="field-label">Date<input name="date" type="date" required defaultValue={today}/></label></div><label className="field-label">Note <span className="optional">OPTIONAL</span><input name="note" maxLength={100} placeholder="e.g. Settling up for groceries"/></label><p className="form-help">Payments in this demo are recorded locally and aren’t sent to a bank or payment service.</p></>}
+      <div className="modal-actions"><button type="button" className="button secondary" onClick={() => setModal(null)}>Cancel</button><button type="submit" className="button primary" disabled={busy !== ""}>{busy ? <><span className="button-spinner"/> Saving…</> : modal === "expense" ? "Submit for review" : "Record payment"}</button></div>
+    </form></section></div>}
+    {toast && <div className="toast" role="status"><span>✓</span>{toast}<button onClick={() => setToast("")} aria-label="Dismiss notification"><Icon name="close" size={14}/></button></div>}
+  </main>;
+}
+
+function SplitParticipants({ groupId, groups, users }: { groupId: string; groups: Group[]; users: Person[] }) {
+  const [chosenGroup, setChosenGroup] = useState(groupId);
+  const [splitType, setSplitType] = useState("EQUAL");
+  useEffect(() => { const update = (event: Event) => setChosenGroup((event as CustomEvent<string>).detail); window.addEventListener("splitsmart-group", update); return () => window.removeEventListener("splitsmart-group", update); }, []);
+  const members = groups.find((group) => group.id === chosenGroup)?.members.map((member) => member.user) ?? [];
+  return <fieldset className="participant-field"><legend>Split with <span>SELECT PEOPLE</span></legend><div className="participant-list">{members.map((user) => <label className="participant-choice" key={user.id}><input type="checkbox" name="participants" value={user.id} defaultChecked/><Avatar person={user} size="small"/><span>{user.name.split(" ")[0]}</span><span className="participant-check"><Icon name="check" size={11}/></span>{splitType === "PERCENTAGE" && <input className="percentage-input" aria-label={`${user.name} percentage`} name={`pct-${user.id}`} type="number" min="0" max="100" step="1" defaultValue={Math.floor(100 / members.length) + (members.indexOf(user) < 100 % members.length ? 1 : 0)}/>}</label>)}</div><p className="form-help">The payer should be included in the split.</p><label className="field-label split-method-label">Split method<select name="splitType" value={splitType} onChange={(event) => setSplitType(event.target.value)}><option value="EQUAL">Split equally</option><option value="PERCENTAGE">By percentage</option></select></label>{splitType === "PERCENTAGE" && <p className="form-help">Enter whole-number percentages that add up to 100%.</p>}<span className="sr-only">{users.length} demo members</span></fieldset>;
 }
